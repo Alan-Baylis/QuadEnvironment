@@ -20,8 +20,6 @@ public class TreeNode
         }
 
     }
-    private int MAX_OBJECTS = 1;
-    public static int MAX_LEVELS = 50;
 
     public int level;
     public List<object> objects;
@@ -86,7 +84,7 @@ public class TreeNode
     }
     public void SetValue(int newType, Vector2 pos, int reqLevel)
     {
-        reqLevel = Mathf.Min(reqLevel, MAX_LEVELS);
+        reqLevel = Mathf.Min(reqLevel, Quadtree.MAX_LEVELS);
         reqLevel = Mathf.Max(reqLevel, 1);
         if (TreeNodeData.typeindex == newType)
         {
@@ -118,7 +116,7 @@ public class TreeNode
 
     public QuadtreeNodeData GetValue(Vector2 pos, int maxlevel)
     {
-        maxlevel = Mathf.Min(maxlevel, MAX_LEVELS);
+        maxlevel = Mathf.Min(maxlevel, Quadtree.MAX_LEVELS);
         maxlevel = Mathf.Max(maxlevel, 1);
         if (nodes[0] == null)
         {
@@ -178,9 +176,6 @@ public class TreeNode
         TryMergeIntoNeighbors();
 
     }
-
-   
-
     void DoCircleAction(Quadtree q, Vector2 Center, float Radius, int level)
     {
         if (IsNodeContainedByCircle(Center, Radius, q))
@@ -196,115 +191,4 @@ public class TreeNode
         float dy = Mathf.Min(Center.y - r.yMax, r.yMin - Center.y);
         return Radius * Radius >= dx * dx + dy * dy;
     }
-    /*
-    void RecalculateSurfaceNodes()
-    {
-        
-        if (nodes[0] == null)
-        {
-            return;
-        }
-        TreeNodeData.isSurface = 0;
-
-        for (int i = 0; i < 4; i++)
-        {
-            if (nodes[i].TreeNodeData.typeindex == 1)
-            {
-                if (nodes[i].level >= maxlevel)
-                {
-                    return nodes[i].TreeNodeData;
-                }
-                else
-                {
-                    return nodes[i].GetValue(pos, maxlevel);
-                }
-            }
-            
-        }
-     
-    }
-    private NODEINDEX getIndex(Rect pRect)
-    {
-        NODEINDEX index = NODEINDEX.Bad;
-
-        double verticalMidpoint = bounds.center.x;
-        double horizontalMidpoint = bounds.center.y;
-        //todo bottom = !top;
-        // Object can completely fit within the top quadrants
-        bool topQuadrant = (pRect.y > horizontalMidpoint);
-        // Object can completely fit within the bottom quadrants
-        bool bottomQuadrant = (pRect.y < horizontalMidpoint && pRect.y + pRect.height < horizontalMidpoint);
-
-        // Object can completely fit within the left quadrants
-        if (pRect.x < verticalMidpoint && pRect.x + pRect.width < verticalMidpoint)
-        {
-            if (topQuadrant)
-            {
-                index = NODEINDEX.TopLeft;
-            }
-            else if (bottomQuadrant)
-            {
-                index = NODEINDEX.BottomLeft;
-            }
-        }
-        // Object can completely fit within the right quadrants
-        else if (pRect.x > verticalMidpoint)
-        {
-            if (topQuadrant)
-            {
-                index = NODEINDEX.TopRight;
-            }
-            else if (bottomQuadrant)
-            {
-                index = NODEINDEX.BottomRight;
-            }
-        }
-
-        return index;
-    }
-    public void insert(Rect pRect)
-    {
-        //Has this node already been split?
-        if (nodes[0] != null)
-        {
-            NODEINDEX index = getIndex(pRect);
-
-            if (index != NODEINDEX.Bad)
-            {
-                //try to insert one level deeper
-                nodes[(int)index].insert(pRect);
-                return;
-            }
-        }
-
-        //This node has not yet been split, so add the object to the object list
-        objects.Add(pRect);
-
-        //Does this object break the MAX_OBJECTS constant?
-        if (objects.Count > MAX_OBJECTS && level < MAX_LEVELS)
-        {
-            //Split the tree 
-            // if (nodes[0] == null)
-            // {
-            split();
-            // }
-
-            int i = 0;
-            while (i < objects.Count)
-            {
-                int ind = (int)getIndex((Rect)objects[i]);
-                if (ind != (int)NODEINDEX.Bad)
-                {
-                    nodes[ind].insert((Rect)objects[i]);
-
-                    objects.RemoveAt(i);
-                }
-                else
-                {
-                    i++;
-                }
-            }
-        }
-    }
-*/
 }
