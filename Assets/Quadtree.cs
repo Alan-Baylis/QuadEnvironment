@@ -6,12 +6,14 @@ public class Quadtree : MonoBehaviour {
     public static int MAX_LEVELS = 8;
     public TreeNode TopLevelNode;
     public Rect bounds;
-  
+
+    public delegate void TreeChangedHandler();
+    public event TreeChangedHandler TreeDidChange;
+
     void Start()
     {
         TopLevelNode = new TreeNode(0, bounds, 0);
     }
-
     void Update()
     {
     }
@@ -22,7 +24,7 @@ public class Quadtree : MonoBehaviour {
     public void SetValue(int newType, Vector2 pos, int reqLevel)
     {
         TopLevelNode.SetValue(newType, pos, reqLevel);
-        RegenerateMesh();
+        TreeDidChange();
     }
 
     void DoCircleAction(Quadtree q, Vector2 Center, float Radius, int level)
@@ -35,9 +37,5 @@ public class Quadtree : MonoBehaviour {
         */
                 
     }
-    void RegenerateMesh()
-    {
-        MeshGenerator meshGen = GetComponent<MeshGenerator>();
-        meshGen.DrawQuadtree(this);
-    }
+  
 }

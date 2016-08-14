@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 public class MeshGenerator : MonoBehaviour {
 
-    public class MeshData
+    class MeshData
     {
         public List<Vector3> verts;
         public List<Color> colors;
@@ -15,10 +15,7 @@ public class MeshGenerator : MonoBehaviour {
             triangles = new List<int>();
         }
     }
-    public SquareGrid squareGrid;
-    public SquareGrid surfaceSquareGrid;
-
-    
+    SquareGrid squareGrid;
 
     public MeshFilter MeshFilter_Interior;
     public MeshRenderer MeshRenderer_Interior;
@@ -31,6 +28,9 @@ public class MeshGenerator : MonoBehaviour {
     Mesh mesh_Interior;
     Mesh mesh_Surface;
 
+    int[,] MarchMap;
+
+    public Quadtree QTree;
     void Start()
     {
         MeshRenderer_Interior.material.shader = Shader.Find("Particles/Alpha Blended");
@@ -41,37 +41,51 @@ public class MeshGenerator : MonoBehaviour {
 
         MeshFilter_Interior.mesh = mesh_Interior;
         MeshFilter_Surface.mesh = mesh_Surface;
+     
+        QTree.TreeDidChange += Tree_TreeDidChange;
     }
 
-    public void DrawQuadtree(Quadtree Tree)
+    private void Tree_TreeDidChange()
     {
-        GenerateSurfaceMeshData(200, Tree.TopLevelNode);
-        GenerateInteriorMeshData(Tree.TopLevelNode);
+        DrawQuadtree();
+    }
+
+    public void DrawQuadtree()
+    {
+        GenerateSurfaceMeshData(QTree.TopLevelNode);
+        GenerateInteriorMeshData(QTree.TopLevelNode);
         GenerateMesh(mesh_Surface, meshData_Surface);
         GenerateMesh(mesh_Interior, meshData_Interior);
     }
 
-    #region Exterior Mesh Generation
+    #region Surface Mesh Generation
 
-    void GenerateSurfaceMeshData(int resolution, TreeNode rootNode)
+    void InitializeMarchingCubes(int resolution,TreeNode rootNode)
     {
-        meshData_Surface = new MeshData();
+        MarchMap = new int[resolution, resolution];
+      
+    }
 
-
-        int[,] map = new int[resolution, resolution];
-        float squareSize = rootNode.bounds.width / map.GetLength(0);
-        for (int x = 0; x < map.GetLength(0); x++)
+    void GenerateSurfaceMeshData(TreeNode rootNode)
+    {
+        if (squareGrid == null)
         {
-            for (int y = 0; y < map.GetLength(1); y++)
+            InitializeMarchingCubes(100, rootNode);
+        }
+        float squareSize = rootNode.bounds.width/ (float)MarchMap.GetLength(0);
+        meshData_Surface = new MeshData();
+        squareGrid = new SquareGrid(MarchMap, squareSize);
+        for (int x = 0; x < MarchMap.GetLength(0); x++)
+        {
+            for (int y = 0; y < MarchMap.GetLength(1); y++)
             {
-                float spaceX = squareSize * x;
-                float spaceY = squareSize * y;
-                int val = rootNode.GetValue(new Vector2(spaceX, spaceY), 8).typeindex;
-                map[x, y] = val;
+               
+                int val = rootNode.GetValue(new Vector2(squareSize*x - (squareSize/2), squareSize*y-(squareSize / 2)), 8).typeindex;
+                MarchMap[x, y] = val;
             }
         }
 
-        SquareGrid squareGrid = new SquareGrid(map, squareSize);
+   
         for (int x = 0; x < squareGrid.squares.GetLength(0); x++)
         {
             for (int y = 0; y < squareGrid.squares.GetLength(1); y++)
@@ -163,12 +177,13 @@ public class MeshGenerator : MonoBehaviour {
    
     void OnDrawGizmos()
     {
+        return;
         if (squareGrid == null) return;
         for (int x = 0; x < squareGrid.squares.GetLength(0); x++)
         {
             for (int y = 0; y < squareGrid.squares.GetLength(1); y++)
             {
-                /*
+                
                Gizmos.color = (squareGrid.squares[x, y].topLeft.active) ? Color.black : Color.white;
                Gizmos.DrawCube(squareGrid.squares[x, y].topLeft.position, Vector3.one * 4f);
 
@@ -186,7 +201,7 @@ public class MeshGenerator : MonoBehaviour {
                Gizmos.DrawCube(squareGrid.squares[x, y].centerRight.position, Vector3.one * 1.5f);
                Gizmos.DrawCube(squareGrid.squares[x, y].centerBottom.position, Vector3.one * 1.5f);
                Gizmos.DrawCube(squareGrid.squares[x, y].centerLeft.position, Vector3.one * 1.5f);
-               */
+
             }
         }
     }
