@@ -23,10 +23,15 @@ public class MeshGenerator : MonoBehaviour {
     public MeshFilter MeshFilter_Surface;
     public MeshRenderer MeshRenderer_Surface;
 
+    public MeshFilter MeshFilter_Smoothed;
+    public MeshRenderer MeshRenderer_Smoothed;
+
     MeshData meshData_Interior;
     MeshData meshData_Surface;
+    
     Mesh mesh_Interior;
     Mesh mesh_Surface;
+    Mesh mesh_Smooth;
 
     int[,] MarchMap;
 
@@ -35,13 +40,13 @@ public class MeshGenerator : MonoBehaviour {
     {
         MeshRenderer_Interior.material.shader = Shader.Find("Particles/Alpha Blended");
         MeshRenderer_Surface.material.shader = Shader.Find("Particles/Alpha Blended");
-
+        MeshRenderer_Smoothed.material.shader = Shader.Find("Particles/Alpha Blended");
         mesh_Interior = new Mesh();
         mesh_Surface = new Mesh();
-
+        mesh_Smooth = new Mesh();
         MeshFilter_Interior.mesh = mesh_Interior;
         MeshFilter_Surface.mesh = mesh_Surface;
-     
+        MeshFilter_Smoothed.mesh = mesh_Smooth;
         QTree.TreeDidChange += Tree_TreeDidChange;
     }
 
@@ -52,35 +57,37 @@ public class MeshGenerator : MonoBehaviour {
 
     public void DrawQuadtree()
     {
-        GenerateSurfaceMeshData(QTree.TopLevelNode);
+     //    GenerateSurfaceMeshData(QTree.TopLevelNode);
         GenerateInteriorMeshData(QTree.TopLevelNode);
-        GenerateMesh(mesh_Surface, meshData_Surface);
+       //  GenerateMesh(mesh_Surface, meshData_Surface);
         GenerateMesh(mesh_Interior, meshData_Interior);
     }
 
     #region Surface Mesh Generation
-
     void InitializeMarchingCubes(int resolution,TreeNode rootNode)
     {
         MarchMap = new int[resolution, resolution];
-      
     }
 
     void GenerateSurfaceMeshData(TreeNode rootNode)
     {
+        float resolution = 50;
         if (squareGrid == null)
         {
-            InitializeMarchingCubes(100, rootNode);
+            InitializeMarchingCubes((int)resolution, rootNode);
         }
-        float squareSize = rootNode.bounds.width/ (float)MarchMap.GetLength(0);
+        float squareSize = rootNode.bounds.width / resolution;
+
         meshData_Surface = new MeshData();
         squareGrid = new SquareGrid(MarchMap, squareSize);
+        float halfSquare = (squareSize / 2.0f);
         for (int x = 0; x < MarchMap.GetLength(0); x++)
         {
             for (int y = 0; y < MarchMap.GetLength(1); y++)
             {
-               
-                int val = rootNode.GetValue(new Vector2(squareSize*x - (squareSize/2), squareSize*y-(squareSize / 2)), 8).typeindex;
+
+                int val = rootNode.GetValue(new Vector2(squareSize*x , squareSize*y), 8).typeindex;
+
                 MarchMap[x, y] = val;
             }
         }
@@ -195,13 +202,13 @@ public class MeshGenerator : MonoBehaviour {
 
                Gizmos.color = (squareGrid.squares[x, y].bottomLeft.active) ? Color.black : Color.white;
                Gizmos.DrawCube(squareGrid.squares[x, y].bottomLeft.position, Vector3.one * 4f);
-
+                /*
                Gizmos.color = Color.gray;
                Gizmos.DrawCube(squareGrid.squares[x, y].centerTop.position, Vector3.one * 1.5f);
                Gizmos.DrawCube(squareGrid.squares[x, y].centerRight.position, Vector3.one * 1.5f);
                Gizmos.DrawCube(squareGrid.squares[x, y].centerBottom.position, Vector3.one * 1.5f);
                Gizmos.DrawCube(squareGrid.squares[x, y].centerLeft.position, Vector3.one * 1.5f);
-
+               */
             }
         }
     }
@@ -215,13 +222,13 @@ public class MeshGenerator : MonoBehaviour {
                 break;
             //1 point
             case 1:
-                MeshFromPoints(square.centerBottom, square.bottomLeft, square.centerLeft);
+                MeshFromPoints(square.centerLeft, square.centerBottom, square.bottomLeft);
                 break;
             case 2:
-                MeshFromPoints(square.centerRight, square.bottomRight, square.centerBottom);
+                MeshFromPoints(square.bottomRight, square.centerBottom, square.centerRight);
                 break;
             case 4:
-                MeshFromPoints(square.centerTop, square.topRight, square.centerRight);
+                MeshFromPoints(square.topRight, square.centerRight, square.centerTop);
                 break;
             case 8:
                 MeshFromPoints(square.topLeft, square.centerTop, square.centerLeft);
@@ -264,7 +271,7 @@ public class MeshGenerator : MonoBehaviour {
             //4 points
             case 15:
                 //simple way to only do surface marching cubes
-                //  MeshFromPoints(square.topLeft, square.topRight, square.bottomRight, square.bottomLeft);
+                  MeshFromPoints(square.topLeft, square.topRight, square.bottomRight, square.bottomLeft);
                 break;
         }
 
@@ -306,7 +313,7 @@ public class MeshGenerator : MonoBehaviour {
             {
                 for(int y = 0; y < nodeCountY; y++)
                 {
-                    Vector3 pos = new Vector3(x * squareSize + squareSize / 2, y * squareSize + squareSize / 2,0);
+                    Vector3 pos = new Vector3(x * squareSize + (squareSize / 2.0f), y * squareSize + (squareSize / 2.0f),0);
                     controlNodes[x, y] = new ControlNode(pos, map[x, y] == 1, squareSize);
                 }
             }

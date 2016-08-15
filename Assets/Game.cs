@@ -7,6 +7,7 @@ public class Game : MonoBehaviour {
     public Quadtree MainTree;
     void Start ()
     {
+        Application.targetFrameRate = 1000;
     }
 	
 	void Update ()
@@ -16,15 +17,13 @@ public class Game : MonoBehaviour {
     int leveltodraw = 1;
     void ControlQuadTree()
     {
-        var ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-        RaycastHit hit = new RaycastHit();
-        if (Physics.Raycast(ray, out hit))
+        if (Input.GetMouseButton(1))
         {
-            //Debug.DrawLine(Camera.main.transform.position, hit.point, Color.red);
-            //Debug.Log(hit.point);
-            if (Input.GetMouseButton(1))
+            var ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+            RaycastHit hit = new RaycastHit();
+            if (Physics.Raycast(ray, out hit))
             {
-                MainTree.SetValue(1, hit.point, leveltodraw);
+                MainTree.DoCircleAction(hit.point, 100, 7);
             }
         }
         if (Input.GetMouseButtonDown(0))

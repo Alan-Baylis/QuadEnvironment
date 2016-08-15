@@ -27,15 +27,10 @@ public class Quadtree : MonoBehaviour {
         TreeDidChange();
     }
 
-    void DoCircleAction(Quadtree q, Vector2 Center, float Radius, int level)
+    public void DoCircleAction(Vector2 Center, float Radius, int level)
     {
-        /*
-        if(IsNodeContainedByCircle(Center,Radius,q))
-        {
-
-        }
-        */
-                
+        TopLevelNode.DoCircleAction(Center, Radius, level, 1);
+        TreeDidChange();
     }
   
 }

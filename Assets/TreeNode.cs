@@ -102,7 +102,7 @@ public class TreeNode
                 if (nodes[i].level == reqLevel)
                 {
                     nodes[i].DoChangeValue(newType);
-                    nodes[i].TryMergeIntoNeighbors();
+                    TryMergeIntoNeighbors(); //merge up since this is a single change
                     break;
                 }
                 else
@@ -174,21 +174,119 @@ public class TreeNode
         nodes[3] = null;
         TreeNodeData.typeindex = t;
         TryMergeIntoNeighbors();
-
     }
-    void DoCircleAction(Quadtree q, Vector2 Center, float Radius, int level)
+ 
+    public void DoCircleAction(Vector2 Center, float Radius, int reqlevel, int newType)
     {
-        if (IsNodeContainedByCircle(Center, Radius, q))
+        if (level < reqlevel)
         {
-
+            if (nodes[0] == null)
+            {
+                split();
+            }
+            for (int i = 0; i < 4; i++)
+            {
+                if (nodes[i].IsIntersectingCircle(Center, Radius))
+                {
+                    nodes[i].DoCircleAction(Center, Radius, reqlevel, newType);
+                }
+            }
         }
 
+        //the current node is at the correct level
+        if (level >= reqlevel)
+        {
+            if (this.IsIntersectingCircle(Center, Radius))
+            {
+                DoChangeValue(newType);
+              //  TryMergeIntoNeighbors();
+            }
+        }
     }
-    bool IsNodeContainedByCircle(Vector2 Center, float Radius, Quadtree q)
+    public void GetIntersectingNodes(Vector2 Center, float Radius, int reqlevel, int newType,List<TreeNode> IntersectingNodes)
     {
-        Rect r = q.bounds;
+       
+    }
+    bool IsContainedByCircle(Vector2 Center, float Radius)
+    {
+        //check if farthest point is contained in circle
+        Rect r = bounds;
         float dx = Mathf.Max(Center.x - r.xMin, r.xMax - Center.x);
         float dy = Mathf.Min(Center.y - r.yMax, r.yMin - Center.y);
         return Radius * Radius >= dx * dx + dy * dy;
+    }
+    bool IsIntersectingCircle(Vector2 Center, float Radius)
+    {
+        Rect r = bounds;
+        if(r.Contains(Center))
+        {
+            //if circle center is within rectangle, skip the line-circle test
+            return true;
+        }
+        Vector2 TL = new Vector2(r.xMin, r.yMax);
+        Vector2 TR = new Vector2(r.xMax, r.yMax);
+        Vector2 BL = new Vector2(r.xMin, r.yMin);
+        Vector2 BR = new Vector2(r.xMax, r.yMin);
+        if(DoesSegmentIntersectCircle(TL,TR,Center,Radius))
+        {
+            return true;
+        }
+        if (DoesSegmentIntersectCircle(TL, BL, Center, Radius))
+        {
+            return true;
+        }
+        if (DoesSegmentIntersectCircle(BR, TR, Center, Radius))
+        {
+            return true;
+        }
+        if (DoesSegmentIntersectCircle(BR, BL, Center, Radius))
+        {
+            return true;
+        }
+        if(IsContainedByCircle(Center,Radius))
+        {
+            return true;
+        }
+        return false;
+    }
+    bool DoesSegmentIntersectCircle(Vector2 start, Vector2 end, Vector2 center, float Radius)
+    {
+        Vector2 DirSeg = end - start;
+        Vector2 DirCircle_Start = start - center;
+
+        float a = Vector2.Dot(DirSeg, DirSeg);
+        float b = Vector2.Dot(2 * DirCircle_Start, DirSeg);
+        float c = Vector2.Dot(DirCircle_Start, DirCircle_Start) - (Radius * Radius);
+        float disc = b * b - 4 * a * c;
+
+        if(disc < 0)
+        {
+            return false;
+        }
+        else
+        {
+            disc = Mathf.Sqrt(disc);
+            float t1 = (-b - disc) / (2 * a);
+            float t2 = (-b + disc) / (2 * a);
+            if (t1 >= 0 && t1 <= 1)
+            {
+                // t1 is the intersection, and it's closer than t2
+                // (since t1 uses -b - discriminant)
+                // Impale, Poke
+                return true;
+            }
+
+            // here t1 didn't intersect so we are either started
+            // inside the sphere or completely past it
+            if (t2 >= 0 && t2 <= 1)
+            {
+                // ExitWound
+                return true;
+            }
+
+            // no intn: FallShort, Past, CompletelyInside
+            return false;
+        }
+     
     }
 }
