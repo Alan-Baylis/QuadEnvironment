@@ -178,6 +178,11 @@ public class TreeNode
  
     public void DoCircleAction(Vector2 Center, float Radius, int reqlevel, int newType)
     {
+        if (IsContainedByCircle(Center, Radius))
+        {
+            DoChangeValue(newType);
+            return;
+        }
         if (level < reqlevel)
         {
             if (nodes[0] == null)
@@ -190,16 +195,6 @@ public class TreeNode
                 {
                     nodes[i].DoCircleAction(Center, Radius, reqlevel, newType);
                 }
-            }
-        }
-
-        //the current node is at the correct level
-        if (level >= reqlevel)
-        {
-            if (this.IsIntersectingCircle(Center, Radius))
-            {
-                DoChangeValue(newType);
-              //  TryMergeIntoNeighbors();
             }
         }
     }
