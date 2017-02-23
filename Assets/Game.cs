@@ -23,7 +23,7 @@ public class Game : MonoBehaviour {
             RaycastHit hit = new RaycastHit();
             if (Physics.Raycast(ray, out hit))
             {
-                MainTree.DoCircleAction(hit.point, 100, 7);
+                MainTree.DoCircleAction(hit.point, 100, leveltodraw);
             }
         }
         if (Input.GetMouseButtonDown(0))

@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 public class Quadtree : MonoBehaviour {
 
-    public static int MAX_LEVELS = 8;
+    public static int MAX_LEVELS = 21;
     public TreeNode TopLevelNode;
     public Rect bounds;
 
@@ -19,11 +19,11 @@ public class Quadtree : MonoBehaviour {
     }
     public void clear()
     {
-        TopLevelNode.clear();
+        TopLevelNode.CollapseChildren(true);
     }
     public void SetValue(int newType, Vector2 pos, int reqLevel)
     {
-        TopLevelNode.SetValue(newType, pos, reqLevel);
+      //  TopLevelNode.SetValue(newType, pos, reqLevel);
         TreeDidChange();
     }
 

@@ -6,27 +6,25 @@ public class TreeNode
 
     public class QuadtreeNodeData
     {
-       public int typeindex = 0;
-        public int isSurface = 0;
+        public int mtypeindex = 0;
+        public Rect mbounds;
+
         public QuadtreeNodeData()
         {
-            typeindex = 0;
-             isSurface = 0;
+           mtypeindex = -1;
         }
-        public QuadtreeNodeData(int t)
+        public QuadtreeNodeData(int t, Rect bounds)
         {
-            typeindex = t;
-            isSurface = 0;
+            mtypeindex = t;
+            mbounds = bounds;
         }
 
     }
 
     public int level;
-    public List<object> objects;
     public QuadtreeNodeData TreeNodeData;
     public TreeNode parent;
-    public TreeNode[] nodes;
-    public Rect bounds;
+    public TreeNode[] children;
     enum NODEINDEX
     {
         TopLeft = 0,
@@ -35,168 +33,175 @@ public class TreeNode
         BottomLeft,
         Bad
     }
+
+
     public TreeNode(int Level, Rect Bounds, int t)
     {
         level = Level;
-        bounds = Bounds;
-        objects = new List<object>();
-        nodes = new TreeNode[4];
-        TreeNodeData = new QuadtreeNodeData(t);
+        children = new TreeNode[4];
+        TreeNodeData = new QuadtreeNodeData(t,Bounds);
     }
-    public void clear()
+
+
+    public void CollapseChildren(bool force)
     {
-        objects.Clear();
-        for (int i = 0; i < nodes.Length; i++)
+        if(force)
         {
-            if (nodes[i] != null)
+            for (int i = 0; i < children.Length; i++)
             {
-                nodes[i].clear();
-                nodes[i] = null;
+                children[i] = null;
+            }
+            return;
+        }
+       
+        if (IdenticalChildren())
+        {
+            TreeNodeData.mtypeindex = children[0].TreeNodeData.mtypeindex;
+            for (int i = 0; i < children.Length; i++)
+            {
+              //  children[i].CollapseChildren(); <- dont think I need to recursively nullify
+                children[i] = null;
             }
         }
     }
-    public void split()
+    bool IdenticalChildren()
     {
+        bool Identical = false;
 
-        if (nodes[0] == null)
+        if (!isLeaf())
         {
-
-            float subWidth = (float)(bounds.width / 2);
-            float subHeight = (float)(bounds.width / 2);
-            float x = (float)bounds.x;
-            float y = (float)bounds.y;
-
-            nodes[0] = new TreeNode(level + 1, new Rect(x, y + subHeight, subWidth, subHeight), TreeNodeData.typeindex);
-            nodes[1] = new TreeNode(level + 1, new Rect(x + subWidth, y + subHeight, subWidth, subHeight), TreeNodeData.typeindex);
-            nodes[2] = new TreeNode(level + 1, new Rect(x + subWidth, y, subWidth, subHeight), TreeNodeData.typeindex);
-            nodes[3] = new TreeNode(level + 1, new Rect(x, y, subWidth, subHeight), TreeNodeData.typeindex);
-            nodes[0].parent = this;
-            nodes[1].parent = this;
-            nodes[2].parent = this;
-            nodes[3].parent = this;
+            
+            Identical = true; 
+            int t = children[0].TreeNodeData.mtypeindex;
+            for(int i = 0; i < children.Length; i++)
+            {
+                if(children[i].TreeNodeData.mtypeindex != t)
+                {
+                    Identical = false;
+                }
+                if (children[i].TreeNodeData.mtypeindex == -1)
+                {
+                    Identical = false;
+                }
+            }
         }
-        TreeNodeData.typeindex = -1;
+        return Identical;
+    }    
+    public void Split()
+    {
+        if (isLeaf())
+        {
+            float subWidth = (float)(TreeNodeData.mbounds.width / 2);
+            float subHeight = (float)(TreeNodeData.mbounds.width / 2);
+            float x = (float)TreeNodeData.mbounds.x;
+            float y = (float)TreeNodeData.mbounds.y;
+            int newlevel = level + 1;
+            int newtype = TreeNodeData.mtypeindex;
+            children[0] = new TreeNode(newlevel, new Rect(x, y + subHeight, subWidth, subHeight), newtype);
+            children[1] = new TreeNode(newlevel, new Rect(x + subWidth, y + subHeight, subWidth, subHeight), newtype);
+            children[2] = new TreeNode(newlevel, new Rect(x + subWidth, y, subWidth, subHeight), newtype);
+            children[3] = new TreeNode(newlevel, new Rect(x, y, subWidth, subHeight), newtype);
+            children[0].parent = this;
+            children[1].parent = this;
+            children[2].parent = this;
+            children[3].parent = this;
+            TreeNodeData.mtypeindex = -1;
+        }
     }
 
     public bool isLeaf()
     {
-        return nodes[0] == null;
+        return children[0] == null;
     }
+
     public void SetValue(int newType, Vector2 pos, int reqLevel)
     {
         reqLevel = Mathf.Min(reqLevel, Quadtree.MAX_LEVELS);
         reqLevel = Mathf.Max(reqLevel, 1);
-        if (TreeNodeData.typeindex == newType)
+        if (TreeNodeData.mtypeindex == newType)
         {
             return;
         }
-        if (nodes[0] == null)
+        if (children[0] == null)
         {
-            split();
+            Split();
         }
-        for (int i = 0; i < 4; i++)
+        for (int i = 0; i < children.Length; i++)
         {
 
-            if (nodes[i].bounds.Contains(pos))
+            if (children[i].TreeNodeData.mbounds.Contains(pos))
             {
-                if (nodes[i].level == reqLevel)
+                if (children[i].level == reqLevel)
                 {
-                    nodes[i].DoChangeValue(newType);
-                    TryMergeIntoNeighbors(); //merge up since this is a single change
+                    children[i].DoChangeValue(newType);
                     break;
                 }
                 else
                 {
-                    nodes[i].SetValue(newType, pos, reqLevel);
+                    children[i].SetValue(newType, pos, reqLevel);
                     break;
                 }
             }
         }
+      
     }
-
+    
     public QuadtreeNodeData GetValue(Vector2 pos, int maxlevel)
     {
         maxlevel = Mathf.Min(maxlevel, Quadtree.MAX_LEVELS);
         maxlevel = Mathf.Max(maxlevel, 1);
-        if (nodes[0] == null)
+        if(isLeaf())// || level >= maxlevel)
         {
             return TreeNodeData;
         }
-        for (int i = 0; i < 4; i++)
+        for (int i = 0; i < children.Length; i++)
         {
-            if (nodes[i].bounds.Contains(pos))
+            if (children[i].TreeNodeData.mbounds.Contains(pos))
             {
-                if (nodes[i].level >= maxlevel)
-                {
-                    return nodes[i].TreeNodeData;
-                }
-                else
-                {
-                   return nodes[i].GetValue(pos, maxlevel);
-                }
+                return children[i].GetValue(pos, maxlevel);
             }
         }
-        return new QuadtreeNodeData(0);
+        return null;
     }
-
-
 
     void DoChangeValue(int newType)
     {
-        clear();
-        TreeNodeData.typeindex = newType;
-    }
-    void TryMergeIntoNeighbors()
-    {
-        if (level < 1)
-        {
-            return;
-        }
-        bool doreduce = true;
-        for (int i = 0; i < 4; i++)
-        {
-            if (parent.nodes[i].TreeNodeData.typeindex != TreeNodeData.typeindex)
-            {
-                doreduce = false;
-            }
-        }
-        if (doreduce)
-        {
-            parent.DoMergeIntoNeighbors(TreeNodeData.typeindex);
+        TreeNodeData.mtypeindex = newType;
+        CollapseChildren(true);
 
-        }
-    }
-    void DoMergeIntoNeighbors(int t)
-    {
-        nodes[0] = null;
-        nodes[1] = null;
-        nodes[2] = null;
-        nodes[3] = null;
-        TreeNodeData.typeindex = t;
-        TryMergeIntoNeighbors();
     }
  
-    public void DoCircleAction(Vector2 Center, float Radius, int reqlevel, int newType)
+    public bool DoCircleAction(Vector2 Center, float Radius, int reqlevel, int newType)
     {
         if (IsContainedByCircle(Center, Radius))
         {
             DoChangeValue(newType);
-            return;
+            return true;
         }
-        if (level < reqlevel)
+        if (IsIntersectingCircle(Center,Radius))
         {
-            if (nodes[0] == null)
+            if (level < reqlevel)
             {
-                split();
+                Split();
             }
-            for (int i = 0; i < 4; i++)
+            if (!isLeaf())
             {
-                if (nodes[i].IsIntersectingCircle(Center, Radius))
+                if (TreeNodeData.mtypeindex != newType)
                 {
-                    nodes[i].DoCircleAction(Center, Radius, reqlevel, newType);
+                    int changes = 0;
+                    for (int i = 0; i < children.Length; i++)
+                    {
+                        if (children[i].DoCircleAction(Center, Radius, reqlevel, newType))
+                        {
+                            changes++;
+                        }
+                    }
                 }
+                CollapseChildren(false);
             }
+          
         }
+        return false;
     }
     public void GetIntersectingNodes(Vector2 Center, float Radius, int reqlevel, int newType,List<TreeNode> IntersectingNodes)
     {
@@ -205,14 +210,14 @@ public class TreeNode
     bool IsContainedByCircle(Vector2 Center, float Radius)
     {
         //check if farthest point is contained in circle
-        Rect r = bounds;
+        Rect r = TreeNodeData.mbounds;
         float dx = Mathf.Max(Center.x - r.xMin, r.xMax - Center.x);
         float dy = Mathf.Min(Center.y - r.yMax, r.yMin - Center.y);
         return Radius * Radius >= dx * dx + dy * dy;
     }
     bool IsIntersectingCircle(Vector2 Center, float Radius)
     {
-        Rect r = bounds;
+        Rect r = TreeNodeData.mbounds;
         if(r.Contains(Center))
         {
             //if circle center is within rectangle, skip the line-circle test

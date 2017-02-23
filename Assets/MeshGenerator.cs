@@ -57,9 +57,9 @@ public class MeshGenerator : MonoBehaviour {
 
     public void DrawQuadtree()
     {
-     //    GenerateSurfaceMeshData(QTree.TopLevelNode);
+      //   GenerateSurfaceMeshData(QTree.TopLevelNode);
         GenerateInteriorMeshData(QTree.TopLevelNode);
-       //  GenerateMesh(mesh_Surface, meshData_Surface);
+    //     GenerateMesh(mesh_Surface, meshData_Surface);
         GenerateMesh(mesh_Interior, meshData_Interior);
     }
 
@@ -76,7 +76,7 @@ public class MeshGenerator : MonoBehaviour {
         {
             InitializeMarchingCubes((int)resolution, rootNode);
         }
-        float squareSize = rootNode.bounds.width / resolution;
+        float squareSize = rootNode.TreeNodeData.mbounds.width / resolution;
 
         meshData_Surface = new MeshData();
         squareGrid = new SquareGrid(MarchMap, squareSize);
@@ -86,7 +86,7 @@ public class MeshGenerator : MonoBehaviour {
             for (int y = 0; y < MarchMap.GetLength(1); y++)
             {
 
-                int val = rootNode.GetValue(new Vector2(squareSize*x , squareSize*y), 8).typeindex;
+                int val = rootNode.GetValue(new Vector2(squareSize*x , squareSize*y), 8).mtypeindex;
 
                 MarchMap[x, y] = val;
             }
@@ -136,7 +136,7 @@ public class MeshGenerator : MonoBehaviour {
             GenerateInteriorQuad(rootNode);
             return;
         }
-        foreach (TreeNode q in rootNode.nodes)
+        foreach (TreeNode q in rootNode.children)
         {
             if (q != null)
             {
@@ -146,7 +146,7 @@ public class MeshGenerator : MonoBehaviour {
     }
     void GenerateInteriorQuad(TreeNode node)
     {
-        Rect bounds = node.bounds;
+        Rect bounds = node.TreeNodeData.mbounds;
         float space = 0f;
         meshData_Interior.verts.Add(new Vector3(bounds.x + space, bounds.y + space));
         meshData_Interior.verts.Add(new Vector3(bounds.x + bounds.width - space, bounds.y + space));
@@ -158,7 +158,7 @@ public class MeshGenerator : MonoBehaviour {
         int start = meshData_Interior.verts.Count - 6;
         for (int i = start; i < start + 6; i++)
         {
-            if (node.TreeNodeData.typeindex == 0)
+            if (node.TreeNodeData.mtypeindex == 0)
             {
                 meshData_Interior.colors.Add(new Color(0, 0, 0, 0));
             }
@@ -175,10 +175,12 @@ public class MeshGenerator : MonoBehaviour {
     void GenerateMesh(Mesh mesh, MeshData data)
     {
         mesh.Clear();
+        
+
         mesh.vertices = data.verts.ToArray();
         mesh.triangles = data.triangles.ToArray();
         mesh.colors = data.colors.ToArray();
-        Debug.Log("NEW MESH");
+    //    Debug.Log("NEW MESH");
     }
    
    
